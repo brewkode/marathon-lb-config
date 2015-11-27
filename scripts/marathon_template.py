@@ -5,7 +5,7 @@ import urllib2
 import json
 from jinja2 import Environment, Template
 
-import Properties
+from properties import Properties
 
 
 class MarathonTaskInfo:
@@ -64,4 +64,4 @@ if __name__ == '__main__':
 	args = argumentParser.parse_args()
 
 	response = tasks_for(args.marathon, args.app_name)
-	render(template_file, out_file, response)
+	render(args.template_file, args.out_file, response)
