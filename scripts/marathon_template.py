@@ -5,6 +5,8 @@ import urllib2
 import json
 from jinja2 import Environment, Template
 
+import Properties
+
 
 class MarathonTaskInfo:
 	def __init__(self, host, ports):
@@ -45,8 +47,11 @@ def tasks_for(marathon_url, apps):
 
 def render(template, out_file, variables):
 	env = Environment()
+	app_name = template.split(".")[0]
+	properties = Properties.load("../conf/"+app_name+".properties")
+
 	template = env.get_template(template)
-	rendered_template = template.stream(variables)
+	rendered_template = template.stream(j2=variables, props=properties)
 	rendered_template.dump(out_file)
 
 if __name__ == '__main__':

@@ -1,0 +1,18 @@
+global
+    daemon
+    maxconn {{props['haproxy']['maxconn']}}
+    log 127.0.0.1 local0 info
+    stats socket ipv4@0.0.0.0:10000 level admin
+    stats timeout 2m
+
+defaults
+    mode {{props['haproxy']['mode']}}
+    option {{props['haproxy']['logmode']}}
+    timeout connect {{props['haproxy']['connect_timeout']}}
+    timeout client {{props['haproxy']['client_timeout']}}
+    timeout server {{props['haproxy']['server_timeout']}}
+
+
+listen admin
+    bind *:9090
+    stats enable
