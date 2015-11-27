@@ -9,11 +9,11 @@ class Properties(object):
 		config = {}
 		if not os.path.exists(cfg_file):
 			return config
-		
+
 		with open(cfg_file, 'r') as fd:
 			for line in fd:
 				if line.startswith("#"):
 					continue
-				parts = line.split("=")
+				parts = line.strip().split("=")
 				config[parts[0]] = parts[1].split("#")[0]
 		return config

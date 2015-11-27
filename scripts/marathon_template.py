@@ -3,7 +3,7 @@
 import argparse
 import urllib2
 import json
-from jinja2 import Environment, Template
+from jinja2 import Environment, Template, FileSystemLoader
 
 from properties import Properties
 
@@ -46,12 +46,12 @@ def tasks_for(marathon_url, apps):
 	return response
 
 def render(template, out_file, variables):
-	env = Environment()
+	env = Environment(loader=FileSystemLoader('templates'))
 	app_name = template.split(".")[0]
-	properties = Properties.load("../conf/"+app_name+".properties")
+	properties = Properties.load("conf/"+app_name+".properties")
 
 	template = env.get_template(template)
-	rendered_template = template.stream(j2=variables, props=properties)
+	rendered_template = template.stream(j2=variables, props={app_name : properties})
 	rendered_template.dump(out_file)
 
 if __name__ == '__main__':
