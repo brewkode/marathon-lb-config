@@ -16,6 +16,9 @@ class MarathonTaskInfo:
 	def http_uri(self):
 		return "http://"+self.host+":"+str(self.ports[0])
 
+	def name(self):
+		return self.host+":"+str(self.ports[0])
+
 
 def to_set(param, sep=','):
 	return set(param.split(sep))
@@ -37,7 +40,7 @@ def fetch_tasks(marathon_uri, app_id):
 	app = http(marathon_uri+"/v2/apps/"+app_id)
 	app_tasks = app["app"]["tasks"]
 	tasks = map(lambda task: MarathonTaskInfo(task["host"], task["ports"]), app_tasks)
-	return map(lambda t: t.http_uri(), tasks)
+	return tasks
 
 def tasks_for(marathon_url, apps):
 	response = {}
@@ -51,7 +54,7 @@ def render(template, out_file, variables):
 	properties = Properties.load("conf/"+app_name+".properties")
 
 	template = env.get_template(template)
-	rendered_template = template.stream(j2=variables, props={app_name : properties})
+	rendered_template = template.stream(j2 = variables, props = {app_name : properties})
 	rendered_template.dump(out_file)
 
 if __name__ == '__main__':

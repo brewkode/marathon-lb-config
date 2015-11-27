@@ -12,6 +12,20 @@ defaults
     timeout client {{props['haproxy']['client_timeout']}}
     timeout server {{props['haproxy']['server_timeout']}}
 
+{% for app in j2 %}
+
+frontend {{app}}
+    mode http
+    log global
+    bind *:{{props['haproxy'][app+"_port"]}}
+    default_backend {{app}}
+
+backend {{app}}
+    balance leastconn
+    option httpchk GET /health HTTP/1.1\r\n
+    {% for task_info in j2[app] %} 
+    server {{task_info.name()}} {{task_info.name()}} check inter 2s rise 5 fall 2 {% endfor %}
+{% endfor %}
 
 listen admin
     bind *:9090

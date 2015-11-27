@@ -12,7 +12,7 @@ class Properties(object):
 
 		with open(cfg_file, 'r') as fd:
 			for line in fd:
-				if line.startswith("#"):
+				if line.startswith("#") or len(line.split("=")) != 2:
 					continue
 				parts = line.strip().split("=")
 				config[parts[0]] = parts[1].split("#")[0]
