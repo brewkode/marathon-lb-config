@@ -24,7 +24,7 @@ backend {{app}}
     balance leastconn
     option httpchk GET /health HTTP/1.1\r\n
     {% for task_info in j2[app] %} 
-    server {{task_info.name()}} {{task_info.name()}} check inter 2s rise 5 fall 2 {% endfor %}
+    server {{task_info.name()}} {{task_info.resolved_name()}} check inter 2s rise 5 fall 2 {% endfor %}
 {% endfor %}
 
 listen admin
