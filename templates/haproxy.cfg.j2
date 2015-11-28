@@ -7,7 +7,6 @@ global
 
 defaults
     mode {{props['haproxy']['mode']}}
-    option {{props['haproxy']['logmode']}}
     timeout connect {{props['haproxy']['connect_timeout']}}
     timeout client {{props['haproxy']['client_timeout']}}
     timeout server {{props['haproxy']['server_timeout']}}
@@ -16,6 +15,7 @@ defaults
 
 frontend {{app}}
     mode http
+    option {{props['haproxy']['logmode']}}
     log global
     bind *:{{props['haproxy'][app+"_port"]}}
     default_backend {{app}}
