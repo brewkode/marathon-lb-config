@@ -33,7 +33,11 @@ def fetch_tasks(marathon_uri, app_id):
 def tasks_for(marathon_url, apps):
   response = {}
   for app in apps:
-    response[app] = fetch_tasks(marathon_url, app)
+    try:
+      response[app] = fetch_tasks(marathon_url, app)
+    except:
+      print "Failed fetching task info for %s" % (app)
+      pass
   return response
 
 def render(template, out_file, variables):
@@ -44,6 +48,10 @@ def render(template, out_file, variables):
   template = env.get_template(template)
   rendered_template = template.stream(j2 = variables, props = {app_name : properties})
   rendered_template.dump(out_file)
+
+class MarathonTemplate(object):
+  def __init__(self, marathon, apps):
+    pass
 
 if __name__ == '__main__':
   argumentParser = argparse.ArgumentParser(prog='marathon_template', description='Script that\'s used to generate ha_proxy config file from marathon')
