@@ -25,7 +25,7 @@ def fetch_tasks(marathon_uri, app_id):
       return MarathonTaskInfo(host, ports)
     except:
       return None
-  tasks = filter(lambda x: x not None, map(lambda task: task_info(task["host"], task["ports"]), app_tasks))
+  tasks = filter(lambda x: x is not None, map(lambda task: task_info(task["host"], task["ports"]), app_tasks))
   return sorted(tasks, key=lambda task: task.name())
 
 def tasks_for(marathon_url, apps):
