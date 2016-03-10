@@ -1,10 +1,9 @@
 import socket
 
 class MarathonTaskInfo:
-	def __init__(self, host, ports, labels):
+	def __init__(self, host, ports):
 		self.host = host
 		self.ports = ports
-		self.labels = labels
 		self.ipaddr = socket.gethostbyname(self.host)
 
 	def http_uri(self):

@@ -18,50 +18,48 @@ def http(url):
   response = urllib2.urlopen(req)
   return json.loads(response.read())
 
-def fetch_tasks(marathon_uri, app_id):
-  app = http(marathon_uri+"/v2/apps/"+app_id)
-  app_tasks = app["app"]["tasks"]
-  app_labels = app["app"]["labels"]
-  def task_info(host, ports, labels):
+def tasks(app_tasks):
+  def task_info(host, ports):
     try:
-      return MarathonTaskInfo(host, ports, labels)
+      return MarathonTaskInfo(host, ports)
     except:
       return None
-
-  tasks = filter(lambda x: x is not None, map(lambda task: task_info(task["host"], task["ports"], app_labels), app_tasks))
+  tasks = filter(lambda x: x is not None, map(lambda task: task_info(task["host"], task["ports"]), app_tasks))
   return sorted(tasks, key=lambda task: task.name())
 
-def apps(marathon_uri):
-  apps = http(marathon_uri+"/v2/apps/")
+def fetch_apps(marathon_uri):
+  apps = http(marathon_uri+"/v2/apps?embed=apps.tasks")
   app_settings = apps["apps"]
   def app_info(app_config):
     try:
-      return MarathonAppInfo(app_config["id"].split("/")[1], app_config["labels"]["port"])
+      return MarathonAppInfo(str(app_config["id"].split("/")[1]), app_config["labels"], app_config["tasks"])
     except:
       return None
-  appConfigs = filter(lambda x: x is not None, map(lambda appConfig: app_info(appConfig), app_settings))
-  return appConfigs
+  return filter(lambda x: x is not None, map(lambda appConfig: app_info(appConfig), app_settings))
 
-def tasks_for(marathon_url, apps):
-  response = {}
-  for app in apps:
-    try:
-      response[app] = fetch_tasks(marathon_url, app)
-    except:
-      print "Failed fetching task info for %s" % (app)
-      pass
-  return response
+def get_apps_to_monitor(app_configs, app_names_to_monitor):
+  return filter(lambda app_config: app_config.should_monitor(app_names_to_monitor), app_configs)
 
-def render(template, out_file, variables, app_configs):
+def get_tasks(app_configs):
+  return {app.name: tasks(app.tasks) for app in app_configs}
+
+def get_properties(path, app_configs):
+  properties = Properties.load(path)
+  for app_config in app_configs:
+    if app_config.has_portlabel():
+      properties[app_config.name+"_port"] = app_config.get_port()
+  return properties
+
+def render(template, out_file, app_configs):
   env = Environment(loader=FileSystemLoader('templates'))
   app_name = template.split(".")[0]
-  properties = Properties.load("conf/"+app_name+".properties")
 
-  for app_config in app_configs:
-    properties[app_config.name+"_port"] = app_config.port
+  properties = get_properties("conf/"+app_name+".properties", app_configs)
 
+  tasks = get_tasks(app_configs)
   template = env.get_template(template)
-  rendered_template = template.stream(j2 = variables, props = {app_name : properties})
+  rendered_template = template.stream(j2 = tasks, props = {app_name : properties})
+
   rendered_template.dump(out_file)
 
 class MarathonTemplate(object):
@@ -76,9 +74,8 @@ if __name__ == '__main__':
   argumentParser.add_argument('-o', '--out_file', help='Output file', required=True)
 
   args = argumentParser.parse_args()
-  apps = apps(args.marathon)
-  app_names = map(lambda app_info: app_info.name, apps)
-  app_names = args.app_name.union(app_names)
 
-  response = tasks_for(args.marathon, app_names)
-  render(args.template_file, args.out_file, response, apps)
+  all_app_configs = fetch_apps(args.marathon)
+  apps_to_monitor = get_apps_to_monitor(all_app_configs, args.app_name)
+
+  render(args.template_file, args.out_file, apps_to_monitor)
