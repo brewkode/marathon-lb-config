@@ -52,13 +52,13 @@ def get_properties(path, app_configs):
 
 def render(template, out_file, app_configs):
   env = Environment(loader=FileSystemLoader('templates'))
-  app_name = template.split(".")[0]
+  template_name = template.split(".")[0]
 
-  properties = get_properties("conf/"+app_name+".properties", app_configs)
+  properties = get_properties("conf/"+template_name+".properties", app_configs)
 
   tasks = get_tasks(app_configs)
   template = env.get_template(template)
-  rendered_template = template.stream(j2 = tasks, props = {app_name : properties})
+  rendered_template = template.stream(j2 = tasks, props = {template_name : properties})
 
   rendered_template.dump(out_file)
 
