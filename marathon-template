@@ -7,6 +7,7 @@ from jinja2 import Environment, Template, FileSystemLoader
 
 from app.properties import Properties
 from app.marathon import MarathonTaskInfo
+from app.marathon_apps import MarathonAppInfo
 
 def to_set(param, sep=','):
   return set(param.split(sep))
@@ -17,9 +18,7 @@ def http(url):
   response = urllib2.urlopen(req)
   return json.loads(response.read())
 
-def fetch_tasks(marathon_uri, app_id):
-  app = http(marathon_uri+"/v2/apps/"+app_id)
-  app_tasks = app["app"]["tasks"]
+def tasks(app_tasks):
   def task_info(host, ports):
     try:
       return MarathonTaskInfo(host, ports)
@@ -28,23 +27,39 @@ def fetch_tasks(marathon_uri, app_id):
   tasks = filter(lambda x: x is not None, map(lambda task: task_info(task["host"], task["ports"]), app_tasks))
   return sorted(tasks, key=lambda task: task.name())
 
-def tasks_for(marathon_url, apps):
-  response = {}
-  for app in apps:
+def fetch_apps(marathon_uri):
+  apps = http(marathon_uri+"/v2/apps?embed=apps.tasks")
+  app_settings = apps["apps"]
+  def app_info(app_config):
     try:
-      response[app] = fetch_tasks(marathon_url, app)
+      return MarathonAppInfo(str(app_config["id"].split("/")[1]), app_config["labels"], app_config["tasks"])
     except:
-      print "Failed fetching task info for %s" % (app)
-      pass
-  return response
+      return None
+  return filter(lambda x: x is not None, map(lambda appConfig: app_info(appConfig), app_settings))
 
-def render(template, out_file, variables):
+def get_apps_to_monitor(app_configs, app_names_to_monitor):
+  return filter(lambda app_config: app_config.should_monitor(app_names_to_monitor), app_configs)
+
+def get_tasks(app_configs):
+  return {app.name: tasks(app.tasks) for app in app_configs}
+
+def get_properties(path, app_configs):
+  properties = Properties.load(path)
+  for app_config in app_configs:
+    if app_config.has_portlabel():
+      properties[app_config.name+"_port"] = app_config.get_port()
+  return properties
+
+def render(template, out_file, app_configs):
   env = Environment(loader=FileSystemLoader('templates'))
-  app_name = template.split(".")[0]
-  properties = Properties.load("conf/"+app_name+".properties")
+  template_name = template.split(".")[0]
 
+  properties = get_properties("conf/"+template_name+".properties", app_configs)
+
+  tasks = get_tasks(app_configs)
   template = env.get_template(template)
-  rendered_template = template.stream(j2 = variables, props = {app_name : properties})
+  rendered_template = template.stream(j2 = tasks, props = {template_name : properties})
+
   rendered_template.dump(out_file)
 
 class MarathonTemplate(object):
@@ -60,5 +75,7 @@ if __name__ == '__main__':
 
   args = argumentParser.parse_args()
 
-  response = tasks_for(args.marathon, args.app_name)
-  render(args.template_file, args.out_file, response)
+  all_app_configs = fetch_apps(args.marathon)
+  apps_to_monitor = get_apps_to_monitor(all_app_configs, args.app_name)
+
+  render(args.template_file, args.out_file, apps_to_monitor)
