@@ -1,2 +1,2 @@
-# Marathon template
-Template rendering to get info from Marathon server and render templates on to local FS.
+# Marathon LB Config
+Generating load balancing/routing configs for apps hosted on marathon. Currently the configs generated work for haproxy.
